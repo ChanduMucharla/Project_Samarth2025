@@ -107,6 +107,7 @@ def api_query():
     else:
         return jsonify({'error':'Sorry, only rainfall & top crops questions are supported. Example: "Compare average rainfall in Andhra Pradesh and Telangana for last 3 years and list top 2 crops."'}), 400
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
 
