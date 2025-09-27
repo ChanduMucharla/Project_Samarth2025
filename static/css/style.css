@@ -1,0 +1,33 @@
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #fdfbfb, #ebedee);
+    padding-top: 40px;
+    transition: background 0.5s, color 0.5s;
+}
+
+body.dark-mode {
+    background: #1e1e2f;
+    color: #eee;
+}
+
+.card {
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.btn-primary {
+    background: #4a90e2;
+    border: none;
+}
+
+.btn-primary:hover {
+    background: #357ABD;
+}
+
+.answer-area {
+    white-space: pre-wrap;
+    font-family: monospace;
+    font-size: 0.95rem;
+}
+

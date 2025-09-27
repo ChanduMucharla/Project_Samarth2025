@@ -1,0 +1,13 @@
+State,Year,Crop,Production,Source
+Andhra Pradesh,2020,Rice,1800,https://data.gov.in/agri/ap_crop_2020.csv
+Andhra Pradesh,2021,Rice,1700,https://data.gov.in/agri/ap_crop_2021.csv
+Andhra Pradesh,2022,Rice,1500,https://data.gov.in/agri/ap_crop_2022.csv
+Andhra Pradesh,2020,Cotton,800,https://data.gov.in/agri/ap_crop_2020.csv
+Andhra Pradesh,2021,Cotton,900,https://data.gov.in/agri/ap_crop_2021.csv
+Andhra Pradesh,2022,Cotton,700,https://data.gov.in/agri/ap_crop_2022.csv
+Telangana,2020,Maize,1400,https://data.gov.in/agri/telangana_crop_2020.csv
+Telangana,2021,Maize,1300,https://data.gov.in/agri/telangana_crop_2021.csv
+Telangana,2022,Maize,1300,https://data.gov.in/agri/telangana_crop_2022.csv
+Telangana,2020,Red Gram,900,https://data.gov.in/agri/telangana_crop_2020.csv
+Telangana,2021,Red Gram,800,https://data.gov.in/agri/telangana_crop_2021.csv
+Telangana,2022,Red Gram,800,https://data.gov.in/agri/telangana_crop_2022.csv

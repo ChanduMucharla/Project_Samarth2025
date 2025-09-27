@@ -1,0 +1,7 @@
+State,Year,Rainfall,Source
+Andhra Pradesh,2020,890,https://data.gov.in/imd/ap_2020.csv
+Andhra Pradesh,2021,920,https://data.gov.in/imd/ap_2021.csv
+Andhra Pradesh,2022,890,https://data.gov.in/imd/ap_2022.csv
+Telangana,2020,860,https://data.gov.in/imd/telangana_2020.csv
+Telangana,2021,880,https://data.gov.in/imd/telangana_2021.csv
+Telangana,2022,870,https://data.gov.in/imd/telangana_2022.csv
