@@ -4,12 +4,10 @@ Implementation of nlargest and nsmallest.
 
 from __future__ import annotations
 
-from collections.abc import (
-    Hashable,
-    Sequence,
-)
 from typing import (
     TYPE_CHECKING,
+    Hashable,
+    Sequence,
     cast,
     final,
 )
@@ -17,6 +15,10 @@ from typing import (
 import numpy as np
 
 from pandas._libs import algos as libalgos
+from pandas._typing import (
+    DtypeObj,
+    IndexLabel,
+)
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -29,11 +31,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import BaseMaskedDtype
 
 if TYPE_CHECKING:
-    from pandas._typing import (
-        DtypeObj,
-        IndexLabel,
-    )
-
     from pandas import (
         DataFrame,
         Series,
@@ -139,11 +136,7 @@ class SelectNSeries(SelectN):
 
         # arr passed into kth_smallest must be contiguous. We copy
         # here because kth_smallest will modify its input
-        # avoid OOB access with kth_smallest_c when n <= 0
-        if len(arr) > 0:
-            kth_val = libalgos.kth_smallest(arr.copy(order="C"), n - 1)
-        else:
-            kth_val = np.nan
+        kth_val = libalgos.kth_smallest(arr.copy(order="C"), n - 1)
         (ns,) = np.nonzero(arr <= kth_val)
         inds = ns[arr[ns].argsort(kind="mergesort")]
 

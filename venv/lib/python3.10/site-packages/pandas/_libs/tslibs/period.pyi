@@ -3,7 +3,6 @@ from typing import Literal
 
 import numpy as np
 
-from pandas._libs.tslibs.dtypes import PeriodDtypeBase
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._libs.tslibs.timestamps import Timestamp
@@ -43,12 +42,6 @@ def extract_ordinals(
 def extract_freq(
     values: npt.NDArray[np.object_],
 ) -> BaseOffset: ...
-def period_array_strftime(
-    values: npt.NDArray[np.int64],
-    dtype_code: int,
-    na_rep,
-    date_format: str | None,
-) -> npt.NDArray[np.object_]: ...
 
 # exposed for tests
 def period_asfreq(ordinal: int, freq1: int, freq2: int, end: bool) -> int: ...
@@ -63,12 +56,11 @@ class PeriodMixin:
     def end_time(self) -> Timestamp: ...
     @property
     def start_time(self) -> Timestamp: ...
-    def _require_matching_freq(self, other: BaseOffset, base: bool = ...) -> None: ...
+    def _require_matching_freq(self, other, base: bool = ...) -> None: ...
 
 class Period(PeriodMixin):
     ordinal: int  # int64_t
     freq: BaseOffset
-    _dtype: PeriodDtypeBase
 
     # error: "__new__" must return a class instance (got "Union[Period, NaTType]")
     def __new__(  # type: ignore[misc]
@@ -87,10 +79,10 @@ class Period(PeriodMixin):
     @classmethod
     def _maybe_convert_freq(cls, freq) -> BaseOffset: ...
     @classmethod
-    def _from_ordinal(cls, ordinal: int, freq: BaseOffset) -> Period: ...
+    def _from_ordinal(cls, ordinal: int, freq) -> Period: ...
     @classmethod
-    def now(cls, freq: Frequency) -> Period: ...
-    def strftime(self, fmt: str | None) -> str: ...
+    def now(cls, freq: BaseOffset = ...) -> Period: ...
+    def strftime(self, fmt: str) -> str: ...
     def to_timestamp(
         self,
         freq: str | BaseOffset | None = ...,

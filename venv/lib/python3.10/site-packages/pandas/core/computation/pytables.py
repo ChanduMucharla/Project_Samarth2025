@@ -2,16 +2,8 @@
 from __future__ import annotations
 
 import ast
-from decimal import (
-    Decimal,
-    InvalidOperation,
-)
 from functools import partial
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    ClassVar,
-)
+from typing import Any
 
 import numpy as np
 
@@ -19,6 +11,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
 )
+from pandas._typing import npt
 from pandas.errors import UndefinedVariableError
 
 from pandas.core.dtypes.common import is_list_like
@@ -39,12 +32,6 @@ from pandas.io.formats.printing import (
     pprint_thing,
     pprint_thing_encoded,
 )
-
-if TYPE_CHECKING:
-    from pandas._typing import (
-        Self,
-        npt,
-    )
 
 
 class PyTablesScope(_scope.Scope):
@@ -97,9 +84,9 @@ class Term(ops.Term):
 
 
 class Constant(Term):
-    def __init__(self, name, env: PyTablesScope, side=None, encoding=None) -> None:
+    def __init__(self, value, env: PyTablesScope, side=None, encoding=None) -> None:
         assert isinstance(env, PyTablesScope), type(env)
-        super().__init__(name, env, side=side, encoding=encoding)
+        super().__init__(value, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
         return self._name
@@ -217,7 +204,7 @@ class BinOp(ops.BinOp):
 
         kind = ensure_decoded(self.kind)
         meta = ensure_decoded(self.meta)
-        if kind == "datetime" or (kind and kind.startswith("datetime64")):
+        if kind in ("datetime64", "datetime"):
             if isinstance(v, (int, float)):
                 v = stringify(v)
             v = ensure_decoded(v)
@@ -241,14 +228,7 @@ class BinOp(ops.BinOp):
                 result = metadata.searchsorted(v, side="left")
             return TermValue(result, result, "integer")
         elif kind == "integer":
-            try:
-                v_dec = Decimal(v)
-            except InvalidOperation:
-                # GH 54186
-                # convert v to float to raise float's ValueError
-                float(v)
-            else:
-                v = int(v_dec.to_integral_exact(rounding="ROUND_HALF_EVEN"))
+            v = int(float(v))
             return TermValue(v, v, kind)
         elif kind == "float":
             v = float(v)
@@ -287,7 +267,7 @@ class FilterBinOp(BinOp):
             return "Filter: Not Initialized"
         return pprint_thing(f"[Filter : [{self.filter[0]}] -> [{self.filter[1]}]")
 
-    def invert(self) -> Self:
+    def invert(self):
         """invert the filter"""
         if self.filter is not None:
             self.filter = (
@@ -301,8 +281,7 @@ class FilterBinOp(BinOp):
         """return the actual filter format"""
         return [self.filter]
 
-    # error: Signature of "evaluate" incompatible with supertype "BinOp"
-    def evaluate(self) -> Self | None:  # type: ignore[override]
+    def evaluate(self):
         if not self.is_valid:
             raise ValueError(f"query term is not valid [{self}]")
 
@@ -341,8 +320,7 @@ class JointFilterBinOp(FilterBinOp):
     def format(self):
         raise NotImplementedError("unable to collapse Joint Filters")
 
-    # error: Signature of "evaluate" incompatible with supertype "BinOp"
-    def evaluate(self) -> Self:  # type: ignore[override]
+    def evaluate(self):
         return self
 
 
@@ -363,8 +341,7 @@ class ConditionBinOp(BinOp):
         """return the actual ne format"""
         return self.condition
 
-    # error: Signature of "evaluate" incompatible with supertype "BinOp"
-    def evaluate(self) -> Self | None:  # type: ignore[override]
+    def evaluate(self):
         if not self.is_valid:
             raise ValueError(f"query term is not valid [{self}]")
 
@@ -392,8 +369,7 @@ class ConditionBinOp(BinOp):
 
 
 class JointConditionBinOp(ConditionBinOp):
-    # error: Signature of "evaluate" incompatible with supertype "BinOp"
-    def evaluate(self) -> Self:  # type: ignore[override]
+    def evaluate(self):
         self.condition = f"({self.lhs.condition} {self.op} {self.rhs.condition})"
         return self
 
@@ -418,8 +394,8 @@ class UnaryOp(ops.UnaryOp):
 
 
 class PyTablesExprVisitor(BaseExprVisitor):
-    const_type: ClassVar[type[ops.Term]] = Constant
-    term_type: ClassVar[type[Term]] = Term
+    const_type = Constant
+    term_type = Term
 
     def __init__(self, env, engine, parser, **kwargs) -> None:
         super().__init__(env, engine, parser)
@@ -431,15 +407,13 @@ class PyTablesExprVisitor(BaseExprVisitor):
                 lambda node, bin_op=bin_op: partial(BinOp, bin_op, **kwargs),
             )
 
-    def visit_UnaryOp(self, node, **kwargs) -> ops.Term | UnaryOp | None:
+    def visit_UnaryOp(self, node, **kwargs):
         if isinstance(node.op, (ast.Not, ast.Invert)):
             return UnaryOp("~", self.visit(node.operand))
         elif isinstance(node.op, ast.USub):
             return self.const_type(-self.visit(node.operand).value, self.env)
         elif isinstance(node.op, ast.UAdd):
             raise NotImplementedError("Unary addition not supported")
-        # TODO: return None might never be reached
-        return None
 
     def visit_Index(self, node, **kwargs):
         return self.visit(node.value).value
@@ -450,7 +424,7 @@ class PyTablesExprVisitor(BaseExprVisitor):
         )
         return self.visit(cmpr)
 
-    def visit_Subscript(self, node, **kwargs) -> ops.Term:
+    def visit_Subscript(self, node, **kwargs):
         # only allow simple subscripts
 
         value = self.visit(node.value)
@@ -589,7 +563,8 @@ class PyTablesExpr(expr.Expr):
                 if isinstance(w, PyTablesExpr):
                     local_dict = w.env.scope
                 else:
-                    where[idx] = _validate_where(w)
+                    w = _validate_where(w)
+                    where[idx] = w
             _where = " & ".join([f"({w})" for w in com.flatten(where)])
         else:
             # _validate_where ensures we otherwise have a string

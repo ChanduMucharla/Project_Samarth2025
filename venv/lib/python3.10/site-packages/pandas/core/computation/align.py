@@ -10,6 +10,7 @@ from functools import (
 from typing import (
     TYPE_CHECKING,
     Callable,
+    Sequence,
 )
 import warnings
 
@@ -28,8 +29,6 @@ import pandas.core.common as com
 from pandas.core.computation.common import result_type_many
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from pandas._typing import F
 
     from pandas.core.generic import NDFrame
@@ -110,7 +109,7 @@ def _align_core(terms):
                 ax, itm = axis, items
 
             if not axes[ax].is_(itm):
-                axes[ax] = axes[ax].union(itm)
+                axes[ax] = axes[ax].join(itm, how="outer")
 
     for i, ndim in ndims.items():
         for axis, items in zip(range(ndim), axes):
@@ -134,8 +133,9 @@ def _align_core(terms):
                         w, category=PerformanceWarning, stacklevel=find_stack_level()
                     )
 
-                obj = ti.reindex(reindexer, axis=axis, copy=False)
-                terms[i].update(obj)
+                f = partial(ti.reindex, reindexer, axis=axis, copy=False)
+
+                terms[i].update(f())
 
         terms[i].update(terms[i].value.values)
 

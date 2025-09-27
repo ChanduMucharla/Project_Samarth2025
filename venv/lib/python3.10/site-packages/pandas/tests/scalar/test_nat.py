@@ -11,6 +11,8 @@ import pytz
 from pandas._libs.tslibs import iNaT
 from pandas.compat.numpy import np_version_gte1p24p3
 
+from pandas.core.dtypes.common import is_datetime64_any_dtype
+
 from pandas import (
     DatetimeIndex,
     DatetimeTZDtype,
@@ -25,23 +27,12 @@ from pandas import (
     offsets,
 )
 import pandas._testing as tm
-from pandas.core import roperator
 from pandas.core.arrays import (
     DatetimeArray,
     PeriodArray,
     TimedeltaArray,
 )
-
-
-class TestNaTFormatting:
-    def test_repr(self):
-        assert repr(NaT) == "NaT"
-
-    def test_str(self):
-        assert str(NaT) == "NaT"
-
-    def test_isoformat(self):
-        assert NaT.isoformat() == "NaT"
+from pandas.core.ops import roperator
 
 
 @pytest.mark.parametrize(
@@ -322,15 +313,14 @@ def test_nat_doc_strings(compare):
     klass, method = compare
     klass_doc = getattr(klass, method).__doc__
 
+    # Ignore differences with Timestamp.isoformat() as they're intentional
     if klass == Timestamp and method == "isoformat":
-        pytest.skip(
-            "Ignore differences with Timestamp.isoformat() as they're intentional"
-        )
+        return
 
     if method == "to_numpy":
         # GH#44460 can return either dt64 or td64 depending on dtype,
         #  different docstring is intentional
-        pytest.skip(f"different docstring for {method} is intentional")
+        return
 
     nat_doc = getattr(NaT, method).__doc__
     assert klass_doc == nat_doc
@@ -442,7 +432,7 @@ def test_nat_rfloordiv_timedelta(val, expected):
     [
         DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
         DatetimeIndex(["2011-01-01", "2011-01-02"], tz="US/Eastern", name="x"),
-        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"], dtype="M8[ns]"),
+        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"]),
         DatetimeArray._from_sequence(
             ["2011-01-01", "2011-01-02"], dtype=DatetimeTZDtype(tz="US/Pacific")
         ),
@@ -454,11 +444,10 @@ def test_nat_arithmetic_index(op_name, value):
     exp_name = "x"
     exp_data = [NaT] * 2
 
-    if value.dtype.kind == "M" and "plus" in op_name:
+    if is_datetime64_any_dtype(value.dtype) and "plus" in op_name:
         expected = DatetimeIndex(exp_data, tz=value.tz, name=exp_name)
     else:
         expected = TimedeltaIndex(exp_data, name=exp_name)
-    expected = expected.as_unit(value.unit)
 
     if not isinstance(value, Index):
         expected = expected.array
@@ -504,7 +493,7 @@ def test_nat_arithmetic_ndarray(dtype, op, out_dtype):
 
 def test_nat_pinned_docstrings():
     # see gh-17327
-    assert NaT.ctime.__doc__ == Timestamp.ctime.__doc__
+    assert NaT.ctime.__doc__ == datetime.ctime.__doc__
 
 
 def test_to_numpy_alias():
@@ -541,8 +530,6 @@ def test_to_numpy_alias():
             marks=pytest.mark.xfail(
                 not np_version_gte1p24p3,
                 reason="td64 doesn't return NotImplemented, see numpy#17017",
-                # When this xfail is fixed, test_nat_comparisons_numpy
-                #  can be removed.
             ),
         ),
         Timestamp(0),

@@ -1,9 +1,6 @@
 import io
 
-import numpy as np
 import pytest
-
-from pandas.compat import is_platform_windows
 
 import pandas as pd
 import pandas._testing as tm
@@ -13,11 +10,10 @@ from pandas.io.excel._base import inspect_excel_format
 
 xlrd = pytest.importorskip("xlrd")
 
-if is_platform_windows():
-    pytestmark = pytest.mark.single_cpu
+exts = [".xls"]
 
 
-@pytest.fixture(params=[".xls"])
+@pytest.fixture(params=exts)
 def read_ext_xlrd(request):
     """
     Valid extensions for reading Excel files with xlrd.
@@ -48,17 +44,6 @@ def test_read_xlsx_fails(datapath):
     path = datapath("io", "data", "excel", "test1.xlsx")
     with pytest.raises(XLRDError, match="Excel xlsx file; not supported"):
         pd.read_excel(path, engine="xlrd")
-
-
-def test_nan_in_xls(datapath):
-    # GH 54564
-    path = datapath("io", "data", "excel", "test6.xls")
-
-    expected = pd.DataFrame({0: np.r_[0, 2].astype("int64"), 1: np.r_[1, np.nan]})
-
-    result = pd.read_excel(path, header=None)
-
-    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(

@@ -9,18 +9,24 @@ import numpy as np
 
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
+from pandas._typing import (
+    Axis,
+    TimedeltaConvertibleTypes,
+)
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series
+    from pandas.core.generic import NDFrame
+
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
+    is_datetime64_ns_dtype,
     is_numeric_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import common
-from pandas.core.arrays.datetimelike import dtype_to_unit
 from pandas.core.indexers.objects import (
     BaseIndexer,
     ExponentialMovingWindowIndexer,
@@ -53,19 +59,6 @@ from pandas.core.window.rolling import (
     BaseWindow,
     BaseWindowGroupby,
 )
-
-if TYPE_CHECKING:
-    from pandas._typing import (
-        Axis,
-        TimedeltaConvertibleTypes,
-        npt,
-    )
-
-    from pandas import (
-        DataFrame,
-        Series,
-    )
-    from pandas.core.generic import NDFrame
 
 
 def get_center_of_mass(
@@ -104,7 +97,7 @@ def get_center_of_mass(
 def _calculate_deltas(
     times: np.ndarray | NDFrame,
     halflife: float | TimedeltaConvertibleTypes | None,
-) -> npt.NDArray[np.float64]:
+) -> np.ndarray:
     """
     Return the diff of the times divided by the half-life. These values are used in
     the calculation of the ewm mean.
@@ -122,11 +115,9 @@ def _calculate_deltas(
     np.ndarray
         Diff of the times divided by the half-life
     """
-    unit = dtype_to_unit(times.dtype)
-    if isinstance(times, ABCSeries):
-        times = times._values
     _times = np.asarray(times.view(np.int64), dtype=np.float64)
-    _halflife = float(Timedelta(halflife).as_unit(unit)._value)
+    # TODO: generalize to non-nano?
+    _halflife = float(Timedelta(halflife).as_unit("ns")._value)
     return np.diff(_times) / _halflife
 
 
@@ -159,6 +150,8 @@ class ExponentialMovingWindow(BaseWindow):
         If ``times`` is specified, a timedelta convertible unit over which an
         observation decays to half its value. Only applicable to ``mean()``,
         and halflife value will not apply to the other functions.
+
+        .. versionadded:: 1.1.0
 
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly
@@ -213,6 +206,8 @@ class ExponentialMovingWindow(BaseWindow):
 
     times : np.ndarray, Series, default None
 
+        .. versionadded:: 1.1.0
+
         Only applicable to ``mean()``.
 
         Times corresponding to the observations. Must be monotonically increasing and
@@ -233,7 +228,7 @@ class ExponentialMovingWindow(BaseWindow):
 
     Returns
     -------
-    pandas.api.typing.ExponentialMovingWindow
+    ``ExponentialMovingWindow`` subclass
 
     See Also
     --------
@@ -369,12 +364,8 @@ class ExponentialMovingWindow(BaseWindow):
         if self.times is not None:
             if not self.adjust:
                 raise NotImplementedError("times is not supported with adjust=False.")
-            times_dtype = getattr(self.times, "dtype", None)
-            if not (
-                is_datetime64_dtype(times_dtype)
-                or isinstance(times_dtype, DatetimeTZDtype)
-            ):
-                raise ValueError("times must be datetime64 dtype.")
+            if not is_datetime64_ns_dtype(self.times):
+                raise ValueError("times must be datetime64[ns] dtype.")
             if len(self.times) != len(obj):
                 raise ValueError("times must be the same length as the object.")
             if not isinstance(self.halflife, (str, datetime.timedelta, np.timedelta64)):
@@ -512,19 +503,7 @@ class ExponentialMovingWindow(BaseWindow):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        numba_notes,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser = pd.Series([1, 2, 3, 4])
-        >>> ser.ewm(alpha=.2).mean()
-        0    1.000000
-        1    1.555556
-        2    2.147541
-        3    2.775068
-        dtype: float64
-        """
-        ),
+        numba_notes.replace("\n", "", 1),
         window_method="ewm",
         aggregation_description="(exponential weighted moment) mean",
         agg_method="mean",
@@ -576,19 +555,7 @@ class ExponentialMovingWindow(BaseWindow):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        numba_notes,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser = pd.Series([1, 2, 3, 4])
-        >>> ser.ewm(alpha=.2).sum()
-        0    1.000
-        1    2.800
-        2    5.240
-        3    8.192
-        dtype: float64
-        """
-        ),
+        numba_notes.replace("\n", "", 1),
         window_method="ewm",
         aggregation_description="(exponential weighted moment) sum",
         agg_method="sum",
@@ -636,28 +603,16 @@ class ExponentialMovingWindow(BaseWindow):
         template_header,
         create_section_header("Parameters"),
         dedent(
-            """\
+            """
         bias : bool, default False
             Use a standard estimation bias correction.
         """
-        ),
+        ).replace("\n", "", 1),
         kwargs_numeric_only,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser = pd.Series([1, 2, 3, 4])
-        >>> ser.ewm(alpha=.2).std()
-        0         NaN
-        1    0.707107
-        2    0.995893
-        3    1.277320
-        dtype: float64
-        """
-        ),
+        template_see_also[:-1],
         window_method="ewm",
         aggregation_description="(exponential weighted moment) standard deviation",
         agg_method="std",
@@ -678,28 +633,16 @@ class ExponentialMovingWindow(BaseWindow):
         template_header,
         create_section_header("Parameters"),
         dedent(
-            """\
+            """
         bias : bool, default False
             Use a standard estimation bias correction.
         """
-        ),
+        ).replace("\n", "", 1),
         kwargs_numeric_only,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser = pd.Series([1, 2, 3, 4])
-        >>> ser.ewm(alpha=.2).var()
-        0         NaN
-        1    0.500000
-        2    0.991803
-        3    1.631547
-        dtype: float64
-        """
-        ),
+        template_see_also[:-1],
         window_method="ewm",
         aggregation_description="(exponential weighted moment) variance",
         agg_method="var",
@@ -723,7 +666,7 @@ class ExponentialMovingWindow(BaseWindow):
         template_header,
         create_section_header("Parameters"),
         dedent(
-            """\
+            """
         other : Series or DataFrame , optional
             If not supplied then will default to self and produce pairwise
             output.
@@ -737,25 +680,12 @@ class ExponentialMovingWindow(BaseWindow):
         bias : bool, default False
             Use a standard estimation bias correction.
         """
-        ),
+        ).replace("\n", "", 1),
         kwargs_numeric_only,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser1 = pd.Series([1, 2, 3, 4])
-        >>> ser2 = pd.Series([10, 11, 13, 16])
-        >>> ser1.ewm(alpha=.2).cov(ser2)
-        0         NaN
-        1    0.500000
-        2    1.524590
-        3    3.408836
-        dtype: float64
-        """
-        ),
+        template_see_also[:-1],
         window_method="ewm",
         aggregation_description="(exponential weighted moment) sample covariance",
         agg_method="cov",
@@ -810,7 +740,7 @@ class ExponentialMovingWindow(BaseWindow):
         template_header,
         create_section_header("Parameters"),
         dedent(
-            """\
+            """
         other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
@@ -822,25 +752,12 @@ class ExponentialMovingWindow(BaseWindow):
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
         """
-        ),
+        ).replace("\n", "", 1),
         kwargs_numeric_only,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser1 = pd.Series([1, 2, 3, 4])
-        >>> ser2 = pd.Series([10, 11, 13, 16])
-        >>> ser1.ewm(alpha=.2).corr(ser2)
-        0         NaN
-        1    1.000000
-        2    0.982821
-        3    0.977802
-        dtype: float64
-        """
-        ),
+        template_see_also[:-1],
         window_method="ewm",
         aggregation_description="(exponential weighted moment) sample correlation",
         agg_method="corr",
@@ -1078,7 +995,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
                 result_kwargs["columns"] = self._selected_obj.columns
             else:
                 result_kwargs["name"] = self._selected_obj.name
-            np_array = self._selected_obj.astype(np.float64, copy=False).to_numpy()
+            np_array = self._selected_obj.astype(np.float64).to_numpy()
         ewma_func = generate_online_numba_ewma_func(
             **get_jit_arguments(self.engine_kwargs)
         )

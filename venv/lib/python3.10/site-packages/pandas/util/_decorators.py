@@ -4,9 +4,9 @@ from functools import wraps
 import inspect
 from textwrap import dedent
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
+    Mapping,
     cast,
 )
 import warnings
@@ -17,9 +17,6 @@ from pandas._typing import (
     T,
 )
 from pandas.util._exceptions import find_stack_level
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
 
 
 def deprecate(
@@ -342,8 +339,8 @@ def deprecate_nonkeyword_arguments(
 
 def doc(*docstrings: None | str | Callable, **params) -> Callable[[F], F]:
     """
-    A decorator to take docstring templates, concatenate them and perform string
-    substitution on them.
+    A decorator take docstring templates, concatenate them and perform string
+    substitution on it.
 
     This decorator will add a variable "_docstring_components" to the wrapped
     callable to keep track the original docstring template for potential usage.
@@ -371,7 +368,7 @@ def doc(*docstrings: None | str | Callable, **params) -> Callable[[F], F]:
                 continue
             if hasattr(docstring, "_docstring_components"):
                 docstring_components.extend(
-                    docstring._docstring_components  # pyright: ignore[reportGeneralTypeIssues]
+                    docstring._docstring_components  # pyright: ignore[reportGeneralTypeIssues] # noqa: E501
                 )
             elif isinstance(docstring, str) or docstring.__doc__:
                 docstring_components.append(docstring)

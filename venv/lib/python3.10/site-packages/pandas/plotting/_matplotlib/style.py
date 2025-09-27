@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import (
-    Collection,
-    Iterator,
-)
 import itertools
 from typing import (
     TYPE_CHECKING,
+    Collection,
+    Iterator,
     cast,
 )
 import warnings
@@ -269,9 +267,7 @@ def _is_single_string_color(color: Color) -> bool:
     """
     conv = matplotlib.colors.ColorConverter()
     try:
-        # error: Argument 1 to "to_rgba" of "ColorConverter" has incompatible type
-        # "str | Sequence[float]"; expected "tuple[float, float, float] | ..."
-        conv.to_rgba(color)  # type: ignore[arg-type]
+        conv.to_rgba(color)
     except ValueError:
         return False
     else:

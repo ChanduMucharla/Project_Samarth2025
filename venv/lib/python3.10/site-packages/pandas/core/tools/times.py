@@ -4,13 +4,11 @@ from datetime import (
     datetime,
     time,
 )
-from typing import TYPE_CHECKING
-import warnings
 
 import numpy as np
 
 from pandas._libs.lib import is_list_like
-from pandas.util._exceptions import find_stack_level
+from pandas._typing import DateTimeErrorChoices
 
 from pandas.core.dtypes.generic import (
     ABCIndex,
@@ -18,13 +16,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
-if TYPE_CHECKING:
-    from pandas._typing import DateTimeErrorChoices
-
 
 def to_time(
     arg,
-    format: str | None = None,
+    format=None,
     infer_time_format: bool = False,
     errors: DateTimeErrorChoices = "raise",
 ):
@@ -54,15 +49,6 @@ def to_time(
     -------
     datetime.time
     """
-    if errors == "ignore":
-        # GH#54467
-        warnings.warn(
-            "errors='ignore' is deprecated and will raise in a future version. "
-            "Use to_time without passing `errors` and catch exceptions "
-            "explicitly instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
 
     def _convert_listlike(arg, format):
         if isinstance(arg, (list, tuple)):
