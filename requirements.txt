@@ -1,13 +1,13 @@
 blinker==1.9.0
 click==8.3.0
-Flask==2.3.2
 gunicorn==21.2.0
 itsdangerous==2.2.0
 Jinja2==3.1.6
 MarkupSafe==3.0.2
-numpy
-packaging==25.0
+Flask==2.3.2
+numpy>=1.24,<1.25
 pandas>=2.0,<2.1
+packaging==25.0
 python-dateutil==2.9.0.post0
 pytz==2025.2
 six==1.17.0
