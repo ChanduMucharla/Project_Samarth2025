@@ -106,7 +106,6 @@ Visit http://127.0.0.1:5000/
 
 ## 👥 Contributors
 - ChanduMucharla/chandumucharla09@gmail.com
-Developed for educational and research purposes.
 
 ## 🪪 License
 Licensed under the MIT License.
